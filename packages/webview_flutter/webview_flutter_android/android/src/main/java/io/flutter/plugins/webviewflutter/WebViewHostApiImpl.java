@@ -10,6 +10,7 @@ import android.hardware.display.DisplayManager;
 import android.view.View;
 import android.webkit.DownloadListener;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
@@ -338,6 +339,9 @@ public class WebViewHostApiImpl implements WebViewHostApi {
         useHybridComposition
             ? webViewProxy.createWebView(context)
             : webViewProxy.createInputAwareWebView(context, containerView);
+
+    // fix: http image can't show
+    webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
 
     displayListenerProxy.onPostWebViewInitialization(displayManager);
     instanceManager.addInstance(webView, instanceId);
