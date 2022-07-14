@@ -4,14 +4,17 @@
 
 package io.flutter.plugins.webviewflutter;
 
+import android.app.Activity;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Message;
+import android.view.View;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -34,6 +37,12 @@ public class WebChromeClientHostApiImpl implements WebChromeClientHostApi {
   public static class WebChromeClientImpl extends WebChromeClient implements Releasable {
     @Nullable private WebChromeClientFlutterApiImpl flutterApi;
     private WebViewClient webViewClient;
+
+    private View view;
+    private View mCustomView;
+    private WebChromeClient.CustomViewCallback mCustomViewCallback;
+    private int mOriginalOrientation;
+    private int mOriginalSystemUiVisibility;
 
     /**
      * Creates a {@link WebChromeClient} that passes arguments of callbacks methods to Dart.
@@ -104,6 +113,8 @@ public class WebChromeClientHostApiImpl implements WebChromeClientHostApi {
 
     @Override
     public void onProgressChanged(WebView view, int progress) {
+      this.view = view;
+
       if (flutterApi != null) {
         flutterApi.onProgressChanged(this, view, (long) progress, reply -> {});
       }
@@ -128,7 +139,46 @@ public class WebChromeClientHostApiImpl implements WebChromeClientHostApi {
       
       return true;
     }
-    
+
+    @Override
+    public void onHideCustomView() {
+      if (view == null) {
+        return;
+      }
+
+      Activity activity = (Activity) view.getContext();
+      View decorView = activity.getWindow().getDecorView();
+
+      ((FrameLayout) decorView).removeView(this.mCustomView);
+      this.mCustomView = null;
+      decorView.setSystemUiVisibility(this.mOriginalSystemUiVisibility);
+      activity.setRequestedOrientation(this.mOriginalOrientation);
+      this.mCustomViewCallback.onCustomViewHidden();
+      this.mCustomViewCallback = null;
+    }
+
+    @Override
+    public void onShowCustomView(View paramView, WebChromeClient.CustomViewCallback paramCustomViewCallback) {
+      if (this.mCustomView != null) {
+        onHideCustomView();
+        return;
+      }
+
+      if (view == null) {
+        return;
+      }
+
+      Activity activity = (Activity) view.getContext();
+      View decorView = activity.getWindow().getDecorView();
+
+      this.mCustomView = paramView;
+      this.mOriginalSystemUiVisibility = decorView.getSystemUiVisibility();
+      this.mOriginalOrientation = activity.getRequestedOrientation();
+      this.mCustomViewCallback = paramCustomViewCallback;
+      ((FrameLayout) decorView).addView(this.mCustomView, new FrameLayout.LayoutParams(-1, -1));
+      decorView.setSystemUiVisibility(3846 | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+    }
+
     /**
      * Set the {@link WebViewClient} that calls to {@link WebChromeClient#onCreateWindow} are passed
      * to.
