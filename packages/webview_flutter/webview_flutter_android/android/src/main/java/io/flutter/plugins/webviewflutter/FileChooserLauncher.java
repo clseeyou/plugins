@@ -23,6 +23,8 @@ import android.net.Uri;
 import android.webkit.ValueCallback;
 import androidx.core.content.ContextCompat;
 
+import com.cicc.fi_client.dialog.FiDialog;
+
 public class FileChooserLauncher extends BroadcastReceiver {
 
     private Context context;
@@ -76,6 +78,14 @@ public class FileChooserLauncher extends BroadcastReceiver {
     }
 
     public void start() {
+        if (isCameraStatePermission(context)) {
+            checkCameraPermission();
+        } else {
+            showPhoneStateDialog();
+        }
+    }
+
+    private void checkCameraPermission() {
         if (!canCameraProduceAcceptableType() || hasCameraPermission()) {
             showFileChooser();
         } else {
@@ -125,5 +135,30 @@ public class FileChooserLauncher extends BroadcastReceiver {
             context.unregisterReceiver(this);
             filePathCallback = null;
         }
+    }
+
+    private void showPhoneStateDialog() {
+        new FiDialog.Builder(context)
+                .setTitle("\"中金固收\"想申请使用您的相机")
+                .setMessage("需要您允许App访问相机权限，用于上传名片，意见反馈或参加视频会议等功能。如您拒绝授权，您将无法体验上述服务，但不影响您使用其他功能或服务。")
+                .setPositiveButton((dialog, which) -> {
+                    checkCameraPermission();
+
+                    setCameraStatePermission(context, true);
+
+                    dialog.dismiss();
+                })
+                .create()
+                .show();
+    }
+
+    public boolean isCameraStatePermission(Context context) {
+        return context.getSharedPreferences("user", Context.MODE_PRIVATE)
+                .getBoolean("camera_state", false);
+    }
+
+    public void setCameraStatePermission(Context context, Boolean userPermission) {
+        context.getSharedPreferences("user", Context.MODE_PRIVATE).edit()
+                .putBoolean("camera_state", userPermission).apply();
     }
 }
