@@ -343,6 +343,9 @@ public class WebViewHostApiImpl implements WebViewHostApi {
     // fix: http image can't show
     webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
 
+    // 禁止webview字体跟随系统字体大小变化
+    webView.getSettings().setTextZoom(100);
+    
     displayListenerProxy.onPostWebViewInitialization(displayManager);
     instanceManager.addInstance(webView, instanceId);
   }
